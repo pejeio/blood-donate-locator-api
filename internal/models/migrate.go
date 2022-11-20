@@ -6,6 +6,7 @@ import (
 )
 
 func AutoMigrate() {
+	// configs.Db().Migrator().DropTable("locations")
 	configs.Db().AutoMigrate(&Location{})
 	log.Println("👍 Database migration complete")
 }
