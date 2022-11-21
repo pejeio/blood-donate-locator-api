@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/controllers"
 	"github.com/pejeio/blood-donate-locator-api/internal/models"
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	server *gin.Engine
+	app *fiber.App
 
 	LocationController      controllers.LocationController
 	LocationRouteController routes.LocationRouteController
@@ -20,7 +20,6 @@ func main() {
 	log.Info("🛫 Starting the app")
 
 	// Config
-	configs.SetUpLogging()
 	config, err := configs.LoadConfig(".")
 	if err != nil {
 		log.Fatal("🧐 Could not load environment variables", err)
@@ -34,13 +33,13 @@ func main() {
 	LocationRouteController = routes.NewRouteLocationController(LocationController)
 
 	// Server
-	gin.SetMode(gin.ReleaseMode)
-	server = gin.Default()
-	server.Use(configs.CorsHandleFunc())
-	router := server.Group("/api")
+	// TODO: Cors
+	app = fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
 
-	LocationRouteController.LocationRoute(router)
+	LocationRouteController.LocationRoute(app)
 
 	log.Printf("👂 Listening and serving HTTP on %s\n", config.ServerPort)
-	log.Fatal(server.Run(":" + config.ServerPort))
+	log.Fatal(app.Listen(":" + config.ServerPort))
 }

@@ -7,8 +7,8 @@ import (
 )
 
 type Coordinates struct {
-	Latitude  float32 `json:"lat"`
-	Longitude float32 `json:"lng"`
+	Latitude  float32 `json:"lat" validate:"number"`
+	Longitude float32 `json:"lng" validate:"number"`
 }
 
 type Address struct {
@@ -29,7 +29,12 @@ type Location struct {
 }
 
 type CreateLocationRequest struct {
-	Name        string      `json:"name" binding:"required"`
-	Coordinates Coordinates `json:"coordinates" binding:"required"`
+	Name        string      `json:"name" validate:"required"`
+	Coordinates Coordinates `json:"coordinates" validate:"required"`
 	Address     Address     `json:"address"`
+}
+
+type PaginationRequest struct {
+	Page  string `query:"page"`
+	Limit string `query:"limit"`
 }

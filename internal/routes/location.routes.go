@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/controllers"
 )
 
@@ -13,8 +13,8 @@ func NewRouteLocationController(locationController controllers.LocationControlle
 	return LocationRouteController{locationController}
 }
 
-func (lc *LocationRouteController) LocationRoute(rg *gin.RouterGroup) {
-	router := rg.Group("locations")
-	router.GET("/", lc.locationController.FindLocations)
-	router.POST("/", lc.locationController.CreateLocation)
+func (lc *LocationRouteController) LocationRoute(app *fiber.App) {
+	router := app.Group("locations")
+	router.Get("/", lc.locationController.FindLocations)
+	router.Post("/", lc.locationController.CreateLocation)
 }

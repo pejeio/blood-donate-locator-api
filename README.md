@@ -4,9 +4,11 @@
 </p>
 <br>
 
+## 👀 Prerequisites
+- Make sure you have a PostgreSQL database
+- Make sure you have Go installed ([download](https://go.dev/dl/)). Version `1.14` or higher is required.
 ## ⚙️ Installation
 
-Make sure you have Go installed ([download](https://go.dev/dl/)). Version `1.14` or higher is required.
 
 1. Install dependencies
 	```sh
@@ -23,8 +25,8 @@ Make sure you have Go installed ([download](https://go.dev/dl/)). Version `1.14`
 
 ## 🔨 Built With
 
+* [Fiber](https://github.com/gofiber/fiber)
 * [Go](https://go.dev)
-* [Gin Web Framework](https://github.com/gin-gonic/gin)
 * [GORM](https://github.com/go-gorm/gorm)
 * [Logrus](https://github.com/sirupsen/logrus)
 * [Viper](https://github.com/spf13/viper)
