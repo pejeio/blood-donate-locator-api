@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/controllers"
+	"github.com/pejeio/blood-donate-locator-api/internal/middlewares"
 	"github.com/pejeio/blood-donate-locator-api/internal/models"
 	"github.com/pejeio/blood-donate-locator-api/internal/routes"
 	log "github.com/sirupsen/logrus"
@@ -29,15 +30,15 @@ func main() {
 	configs.ConnectDB(&config)
 	models.AutoMigrate()
 
+	// Server
+	app = fiber.New(fiber.Config{DisableStartupMessage: true})
+	middlewares.UseCors(app)
+
+	// Controllers
 	LocationController = controllers.NewLocationController(configs.Db())
 	LocationRouteController = routes.NewRouteLocationController(LocationController)
 
-	// Server
-	// TODO: Cors
-	app = fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-	})
-
+	// Routes
 	LocationRouteController.LocationRoute(app)
 
 	log.Printf("👂 Listening and serving HTTP on %s\n", config.ServerPort)

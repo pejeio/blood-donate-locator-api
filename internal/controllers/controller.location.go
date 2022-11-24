@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/models"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -18,7 +19,10 @@ func (lc *LocationController) CreateLocation(c *fiber.Ctx) error {
 	payload := new(models.CreateLocationRequest)
 
 	if err := c.BodyParser(payload); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		log.Errorln(err)
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(
+			JsonErrorResponse{Status: "error", Message: err.Error()},
+		)
 	}
 
 	errors := ValidateStruct(*payload)
@@ -33,11 +37,12 @@ func (lc *LocationController) CreateLocation(c *fiber.Ctx) error {
 	}
 	result := lc.DB.Create(&newLocation)
 	if result.Error != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": result.Error.Error()})
+		c.Status(fiber.StatusInternalServerError).JSON(
+			JsonErrorResponse{Status: "error", Message: result.Error.Error()},
+		)
 		return result.Error
 	}
-	c.Status(fiber.StatusCreated).JSON(newLocation)
-	return nil
+	return c.Status(fiber.StatusCreated).JSON(newLocation)
 }
 
 func (lc *LocationController) FindLocations(c *fiber.Ctx) error {
@@ -52,9 +57,8 @@ func (lc *LocationController) FindLocations(c *fiber.Ctx) error {
 		Order("created_at DESC").
 		Find(&locations)
 
-	c.JSON(models.ResponseWithPagination{
+	return c.JSON(models.ResponseWithPagination{
 		Data: locations,
 		Meta: models.ResponseMeta{Count: totalCount},
 	})
-	return nil
 }
