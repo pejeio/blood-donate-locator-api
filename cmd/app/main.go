@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/casbin/casbin/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/pejeio/blood-donate-locator-api/internal/authz"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/controllers"
 	"github.com/pejeio/blood-donate-locator-api/internal/middlewares"
@@ -15,6 +17,7 @@ var (
 
 	LocationController      controllers.LocationController
 	LocationRouteController routes.LocationRouteController
+	Enforcer                *casbin.Enforcer
 )
 
 func main() {
@@ -32,10 +35,13 @@ func main() {
 
 	// Server
 	app = fiber.New(fiber.Config{DisableStartupMessage: true})
-	middlewares.UseCors(app)
+	app.Use(middlewares.CorsHandler())
+
+	// Authorization
+	Enforcer = authz.NewEnforcer("casbin.conf", "casbin_policy.csv")
 
 	// Controllers
-	LocationController = controllers.NewLocationController(configs.Db())
+	LocationController = controllers.NewLocationController(configs.Db(), Enforcer)
 	LocationRouteController = routes.NewRouteLocationController(LocationController)
 
 	// Routes

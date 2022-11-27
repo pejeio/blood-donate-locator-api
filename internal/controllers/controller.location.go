@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/casbin/casbin/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/models"
 	log "github.com/sirupsen/logrus"
@@ -8,20 +9,26 @@ import (
 )
 
 type LocationController struct {
-	DB *gorm.DB
+	DB       *gorm.DB
+	Enforcer *casbin.Enforcer
 }
 
-func NewLocationController(DB *gorm.DB) LocationController {
-	return LocationController{DB}
+func NewLocationController(DB *gorm.DB, Enforcer *casbin.Enforcer) LocationController {
+	return LocationController{DB, Enforcer}
 }
 
 func (lc *LocationController) CreateLocation(c *fiber.Ctx) error {
+	if can, _ := lc.Enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
+		return c.Status(fiber.StatusUnauthorized).JSON(
+			JsonErrorResponse{Message: "Unauthorized"},
+		)
+	}
 	payload := new(models.CreateLocationRequest)
 
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorln(err)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(
-			JsonErrorResponse{Status: "error", Message: err.Error()},
+			JsonErrorResponse{Message: err.Error()},
 		)
 	}
 
@@ -38,7 +45,7 @@ func (lc *LocationController) CreateLocation(c *fiber.Ctx) error {
 	result := lc.DB.Create(&newLocation)
 	if result.Error != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Status: "error", Message: result.Error.Error()},
+			JsonErrorResponse{Message: result.Error.Error()},
 		)
 		return result.Error
 	}
