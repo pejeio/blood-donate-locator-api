@@ -1,10 +1,10 @@
-package controllers
+package api
 
 import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/pejeio/blood-donate-locator-api/internal/models"
+	"github.com/pejeio/blood-donate-locator-api/internal/types"
 )
 
 type PageLimitOffset struct {
@@ -14,7 +14,7 @@ type PageLimitOffset struct {
 }
 
 func GetPaginationQueryParams(c *fiber.Ctx) *PageLimitOffset {
-	q := new(models.PaginationRequest)
+	q := new(types.PaginationRequest)
 	c.QueryParser(q)
 
 	if q.Limit == "" {

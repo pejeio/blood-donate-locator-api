@@ -1,4 +1,4 @@
-package models
+package types
 
 type ResponseMeta struct {
 	Count int64 `json:"count"`
