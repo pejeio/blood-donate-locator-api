@@ -5,17 +5,18 @@ import (
 )
 
 type Config struct {
-	DBHost         string `mapstructure:"POSTGRES_HOST"`
-	DBUserName     string `mapstructure:"POSTGRES_USER"`
-	DBUserPassword string `mapstructure:"POSTGRES_PASSWORD"`
-	DBName         string `mapstructure:"POSTGRES_DB"`
-	DBPort         string `mapstructure:"POSTGRES_PORT"`
-	ServerPort     string `mapstructure:"PORT"`
-	CasbinPolicy   string `mapstructure:"CASBIN_POLICY_FILE"`
+	DBHost           string `mapstructure:"MONGO_HOST"`
+	DBUserName       string `mapstructure:"MONGO_USER"`
+	DBUserPassword   string `mapstructure:"MONGO_PASSWORD"`
+	DBName           string `mapstructure:"MONGO_DB"`
+	DBPort           string `mapstructure:"MONGO_PORT"`
+	ServerPort       string `mapstructure:"PORT"`
+	CasbinPolicyFile string `mapstructure:"CASBIN_POLICY_FILE"`
+	CasbinConfFile   string `mapstructure:"CASBIN_CONFIG_FILE"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
-	viper.AddConfigPath(path)
+func LoadConfig() (config Config, err error) {
+	viper.AddConfigPath(".")
 	viper.SetConfigFile(".env")
 
 	viper.AutomaticEnv()

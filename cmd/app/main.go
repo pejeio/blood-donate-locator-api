@@ -4,36 +4,40 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/api"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
+	"github.com/pejeio/blood-donate-locator-api/internal/storage"
 	log "github.com/sirupsen/logrus"
-)
-
-var (
-	app *fiber.App
 )
 
 func main() {
 	log.Info("🛫 Starting the app")
 
 	// Config
-	config, err := configs.LoadConfig(".")
+	cfg, err := configs.LoadConfig()
 	if err != nil {
 		log.Fatal("🧐 Could not load environment variables", err)
 	}
 
-	// DB
-	configs.ConnectDB(&config)
-	configs.AutoMigrate()
+	// Database
+	mongoClient, err := storage.ConnectDB(&cfg)
+	if err != nil {
+		log.Fatal("❌ Failed to connect to the database", err)
+	}
+	defer func() {
+		if err = storage.DisconnectDb(mongoClient); err != nil {
+			panic(err)
+		}
+	}()
 
-	// Authz
-	api.NewEnforcer(config)
+	// Authorization
+	enforcer, err := api.NewEnforcer(&cfg)
+	if err != nil {
+		log.Fatal("❌ Failed to set up authorization", err)
+	}
+
+	// Fiber App
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	// Server
-	app = fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Use(api.CorsHandler())
-
-	// Routes
-	api.LocationRoutes(app)
-
-	log.Printf("👂 Listening and serving HTTP on %s\n", config.ServerPort)
-	log.Fatal(app.Listen(":" + config.ServerPort))
+	server := api.NewServer(&cfg, mongoClient, enforcer, app)
+	server.Start()
 }

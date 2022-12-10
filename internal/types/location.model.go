@@ -3,38 +3,47 @@ package types
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Coordinates struct {
-	Latitude  float32 `json:"lat" validate:"number"`
-	Longitude float32 `json:"lng" validate:"number"`
+	Latitude  float32 `json:"lat,omitempty" validate:"number"`
+	Longitude float32 `json:"lng,omitempty" validate:"number"`
 }
 
 type Address struct {
-	Street     string `gorm:"index" json:"street,omitempty"`
-	Number     int32  `json:"number,omitempty"`
-	City       string `json:"city,omitempty"`
-	PostalCode string `json:"postal_code,omitempty"`
-	Country    string `json:"country,omitempty"`
+	Street      string `json:"street,omitempty"`
+	Number      int32  `json:"number,omitempty"`
+	City        string `json:"city,omitempty"`
+	PostalCode  string `json:"postal_code,omitempty"`
+	CountryCode string `json:"country_code,omitempty"`
 }
 
 type Location struct {
-	ID          uuid.UUID   `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`
-	Name        string      `gorm:"index;not null" json:"name"`
-	Address     Address     `gorm:"embedded" json:"address,omitempty"`
-	Coordinates Coordinates `gorm:"embedded" json:"coordinates"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	Name        string       `bson:"name" json:"name"`
+	Address     *Address     `bson:"address" json:"address"`
+	Coordinates *Coordinates `bson:"coordinates" json:"coordinates,omitempty"`
+	CreatedAt   time.Time    `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time    `bson:"updated_at" json:"updated_at"`
+}
+
+func (l *Location) MarshalBSON() ([]byte, error) {
+	if l.CreatedAt.IsZero() {
+		l.CreatedAt = time.Now()
+	}
+	l.UpdatedAt = time.Now()
+
+	type my Location
+	return bson.Marshal((*my)(l))
 }
 
 type CreateLocationRequest struct {
-	Name        string      `json:"name" validate:"required"`
-	Coordinates Coordinates `json:"coordinates" validate:"required"`
-	Address     Address     `json:"address"`
+	Name        string       `json:"name" validate:"required"`
+	Coordinates *Coordinates `json:"coordinates" validate:"required"`
+	Address     *Address     `json:"address"`
 }
 
 type PaginationRequest struct {
-	Page  string `query:"page"`
-	Limit string `query:"limit"`
+	Limit  string `query:"limit"`
+	Offset string `query:"offset"`
 }

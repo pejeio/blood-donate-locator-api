@@ -5,7 +5,7 @@
 <br>
 
 ## 👀 Prerequisites
-- Make sure you have a PostgreSQL database
+- Make sure you have a [MongoDB](https://www.mongodb.com/) database
 - Make sure you have Go installed ([download](https://go.dev/dl/)). Version `1.14` or higher is required.
 ## ⚙️ Installation
 
@@ -27,7 +27,6 @@
 
 * [Fiber](https://github.com/gofiber/fiber)
 * [Go](https://go.dev)
-* [GORM](https://github.com/go-gorm/gorm)
 * [Logrus](https://github.com/sirupsen/logrus)
 * [Viper](https://github.com/spf13/viper)
 

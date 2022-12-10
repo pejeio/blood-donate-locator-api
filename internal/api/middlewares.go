@@ -20,15 +20,6 @@ func BasicAuthHandler() fiber.Handler {
 	})
 }
 
-func UserIsLocationWriter(c *fiber.Ctx) error {
-	if can, _ := Enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
-		return c.Status(fiber.StatusForbidden).JSON(
-			JsonErrorResponse{Message: "Forbidden"},
-		)
-	}
-	return c.Next()
-}
-
 func CorsHandler() fiber.Handler {
 	return cors.New(cors.Config{
 		Next:             nil,

@@ -8,7 +8,6 @@ import (
 )
 
 type PageLimitOffset struct {
-	Page   int
 	Limit  int
 	Offset int
 }
@@ -20,17 +19,15 @@ func GetPaginationQueryParams(c *fiber.Ctx) *PageLimitOffset {
 	if q.Limit == "" {
 		q.Limit = "10"
 	}
-	if q.Page == "" {
-		q.Page = "1"
+	if q.Offset == "" {
+		q.Offset = "0"
 	}
 
-	intPage, _ := strconv.Atoi(q.Page)
+	intOffset, _ := strconv.Atoi(q.Offset)
 	intLimit, _ := strconv.Atoi(q.Limit)
 
-	offset := (intPage - 1) * intLimit
 	return &PageLimitOffset{
-		Page:   intPage,
 		Limit:  intLimit,
-		Offset: offset,
+		Offset: intOffset,
 	}
 }
