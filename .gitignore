@@ -56,3 +56,4 @@ go.work
 /tmp/
 
 casbin_policy.csv
+auth-users.csv

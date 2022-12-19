@@ -1,17 +1,20 @@
 package api
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
 )
 
-func (s *Server) LocationsCollection() *mongo.Collection {
-	return s.mongoClient.Database(s.config.DBName).Collection("locations")
+func (s *Server) LocationCollection() *mongo.Collection {
+	return s.client.Database(s.config.DBName).Collection("locations")
 }
 
 func (s *Server) CreateLocation(c *fiber.Ctx) error {
@@ -32,7 +35,9 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 		Address:     payload.Address,
 	}
 	newLocation.MarshalBSON()
-	_, err := s.LocationsCollection().InsertOne(c.Context(), newLocation)
+	doc, err := s.LocationCollection().InsertOne(c.Context(), newLocation)
+
+	newLocation.ID = doc.InsertedID.(primitive.ObjectID)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
@@ -52,19 +57,17 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 
 	g := new(errgroup.Group)
 
-	var (
-		totalCount int64
-		locations  []types.Location
-	)
+	var totalCount int64
+	locations := make([]types.Location, 0)
 
 	g.Go(func() error {
-		count, err := s.LocationsCollection().CountDocuments(c.Context(), filter)
+		count, err := s.LocationCollection().CountDocuments(c.Context(), filter)
 		totalCount = count
 		return err
 	})
 
 	g.Go(func() error {
-		cursor, err := s.LocationsCollection().Find(c.Context(), filter, opts)
+		cursor, err := s.LocationCollection().Find(c.Context(), filter, opts)
 		for cursor.Next(c.Context()) {
 			var location types.Location
 			err := cursor.Decode(&location)
@@ -86,7 +89,29 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 	})
 }
 
-func (l *Server) UserIsLocationWriter(c *fiber.Ctx) error {
+func (s *Server) DeleteLocation(c *fiber.Ctx) error {
+	id := c.Params("id")
+	objId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			JsonErrorResponse{Message: "Invalid ID"},
+		)
+	}
+	filter := bson.M{"_id": objId}
+	res, _ := s.LocationCollection().DeleteOne(context.Background(), filter)
+	if res.DeletedCount > 0 {
+		return c.SendStatus(200)
+	}
+	if res.DeletedCount == 0 {
+		return c.Status(fiber.StatusNotFound).JSON(
+			JsonErrorResponse{Message: "Location not found"},
+		)
+	}
+
+	return c.SendStatus(fiber.StatusInternalServerError)
+}
+
+func (l *Server) UserIsLocationAdmin(c *fiber.Ctx) error {
 	if can, _ := l.enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
 		return c.Status(fiber.StatusForbidden).JSON(
 			JsonErrorResponse{Message: "Forbidden"},

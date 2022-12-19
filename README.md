@@ -20,7 +20,21 @@
 	# Edit the file to your needs
 	cp .env.sample .env
 	```
-3. Run the project with [Air](https://github.com/cosmtrek/air) *(live reload for Go apps)*
+3. Create the `auth-users.csv` file
+
+	Authentication is implemented to validate if a user can update resources.
+	```sh
+	# Edit the file to your needs
+	cp auth-users.csv.sample auth-users.csv
+	```
+4. Create the `casbin_policy.csv` file
+
+	Authorization is implemented to validate if a user can update resources.
+	```sh
+	# Edit the file to your needs
+	cp casbin_policy.csv.sample casbin_policy.csv
+	```
+5. Run the project with [Air](https://github.com/cosmtrek/air) *(live reload for Go apps)*
 
 
 ## 🔨 Built With

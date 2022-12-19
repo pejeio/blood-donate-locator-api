@@ -9,22 +9,23 @@ import (
 )
 
 type Server struct {
-	app         *fiber.App
-	config      *configs.Config
-	mongoClient *mongo.Client
-	enforcer    *casbin.Enforcer
+	app      *fiber.App
+	config   *configs.Config
+	client   *mongo.Client
+	enforcer *casbin.Enforcer
 }
 
-func NewServer(config *configs.Config, mongoClient *mongo.Client, enf *casbin.Enforcer, app *fiber.App) *Server {
+func NewServer(config *configs.Config, client *mongo.Client, enf *casbin.Enforcer, app *fiber.App) *Server {
 	return &Server{
-		app:         app,
-		config:      config,
-		mongoClient: mongoClient,
-		enforcer:    enf,
+		app:      app,
+		config:   config,
+		client:   client,
+		enforcer: enf,
 	}
 }
 
 func (s *Server) Start() {
+	configs.InitAuthUsers()
 	s.Cors()
 	s.Routes()
 	log.Printf("👂 Listening and serving HTTP on %s\n", s.config.ServerPort)
@@ -35,7 +36,8 @@ func (s *Server) Routes() {
 	// Locations
 	router := s.app.Group("locations")
 	router.Get("/", s.FindLocations)
-	router.Use(BasicAuthHandler()).Use(s.UserIsLocationWriter).Post("/", s.CreateLocation)
+	router.Post("/", BasicAuthHandler(), s.UserIsLocationAdmin, s.CreateLocation)
+	router.Delete("/:id", BasicAuthHandler(), s.UserIsLocationAdmin, s.DeleteLocation)
 }
 
 func (s *Server) Cors() {
