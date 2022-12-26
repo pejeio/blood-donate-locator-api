@@ -1,21 +1,12 @@
 package api
 
 import (
-	"context"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
 )
-
-func (s *Server) LocationCollection() *mongo.Collection {
-	return s.client.Database(s.config.DBName).Collection("locations")
-}
 
 func (s *Server) CreateLocation(c *fiber.Ctx) error {
 	payload := new(types.CreateLocationRequest)
@@ -29,15 +20,8 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 	if errors != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(errors)
 	}
-	newLocation := types.Location{
-		Name:        payload.Name,
-		Coordinates: payload.Coordinates,
-		Address:     payload.Address,
-	}
-	newLocation.MarshalBSON()
-	doc, err := s.LocationCollection().InsertOne(c.Context(), newLocation)
 
-	newLocation.ID = doc.InsertedID.(primitive.ObjectID)
+	newLocation, err := s.Store.CreateLocation(s.Ctx, *payload)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
@@ -48,71 +32,64 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 }
 
 func (s *Server) FindLocations(c *fiber.Ctx) error {
-	pag := GetPaginationQueryParams(c)
-	filter := bson.D{}
-	opts := options.Find()
-	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
-	opts.SetLimit(int64(pag.Limit))
-	opts.SetSkip(int64(pag.Offset))
+	var (
+		g              errgroup.Group
+		locations      []types.Location
+		locationsCount int64
+	)
 
-	g := new(errgroup.Group)
-
-	var totalCount int64
-	locations := make([]types.Location, 0)
+	limitOffset, err := GetPaginationQueryParams(c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			JsonErrorResponse{Message: err.Error()},
+		)
+	}
+	findOptions := PaginationMongoOptions(limitOffset)
 
 	g.Go(func() error {
-		count, err := s.LocationCollection().CountDocuments(c.Context(), filter)
-		totalCount = count
+		locs, err := s.Store.GetLocations(s.Ctx, bson.M{}, *findOptions)
+		locations = locs
 		return err
 	})
 
 	g.Go(func() error {
-		cursor, err := s.LocationCollection().Find(c.Context(), filter, opts)
-		for cursor.Next(c.Context()) {
-			var location types.Location
-			err := cursor.Decode(&location)
-			if err != nil {
-				return err
-			}
-			locations = append(locations, location)
-		}
+		count, err := s.Store.CountLocations(s.Ctx)
+		locationsCount = count
 		return err
 	})
 
 	if err := g.Wait(); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			JsonErrorResponse{Message: err.Error()},
+		)
 	}
 
 	return c.JSON(types.ResponseWithPagination{
 		Data: locations,
-		Meta: types.ResponseMeta{Count: totalCount},
+		Meta: types.ResponseMeta{Count: locationsCount},
 	})
 }
 
 func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 	id := c.Params("id")
-	objId, err := primitive.ObjectIDFromHex(id)
+	delCount, err := s.Store.DeleteLocation(s.Ctx, id)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(
-			JsonErrorResponse{Message: "Invalid ID"},
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			JsonErrorResponse{Message: err.Error()},
 		)
 	}
-	filter := bson.M{"_id": objId}
-	res, _ := s.LocationCollection().DeleteOne(context.Background(), filter)
-	if res.DeletedCount > 0 {
-		return c.SendStatus(200)
-	}
-	if res.DeletedCount == 0 {
+	if delCount == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(
 			JsonErrorResponse{Message: "Location not found"},
 		)
 	}
-
-	return c.SendStatus(fiber.StatusInternalServerError)
+	return c.Status(fiber.StatusOK).JSON(
+		fiber.Map{"deleted": delCount},
+	)
 }
 
 func (l *Server) UserIsLocationAdmin(c *fiber.Ctx) error {
-	if can, _ := l.enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
+	if can, _ := l.Enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
 		return c.Status(fiber.StatusForbidden).JSON(
 			JsonErrorResponse{Message: "Forbidden"},
 		)

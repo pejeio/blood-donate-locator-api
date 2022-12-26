@@ -1,45 +1,52 @@
 package api
 
 import (
+	"context"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
+	"github.com/pejeio/blood-donate-locator-api/internal/store"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Server struct {
-	app      *fiber.App
-	config   *configs.Config
-	client   *mongo.Client
-	enforcer *casbin.Enforcer
+	App      *fiber.App
+	Config   *configs.Config
+	Store    store.Store
+	Enforcer *casbin.Enforcer
+	Ctx      context.Context
 }
 
-func NewServer(config *configs.Config, client *mongo.Client, enf *casbin.Enforcer, app *fiber.App) *Server {
+func NewServer(c *configs.Config, s store.Store, enf *casbin.Enforcer, app *fiber.App, ctx context.Context) *Server {
 	return &Server{
-		app:      app,
-		config:   config,
-		client:   client,
-		enforcer: enf,
+		App:      app,
+		Config:   c,
+		Store:    s,
+		Enforcer: enf,
+		Ctx:      ctx,
 	}
 }
 
 func (s *Server) Start() {
-	configs.InitAuthUsers()
+	err := configs.InitAuthUsers()
+	if err != nil {
+		log.Println(err)
+	}
 	s.Cors()
 	s.Routes()
-	log.Printf("👂 Listening and serving HTTP on %s\n", s.config.ServerPort)
-	log.Fatal(s.app.Listen(":" + s.config.ServerPort))
+	log.Printf("👂 Listening and serving HTTP on %s\n", s.Config.ServerPort)
+	log.Fatal(s.App.Listen(":" + s.Config.ServerPort))
 }
 
 func (s *Server) Routes() {
 	// Locations
-	router := s.app.Group("locations")
+	router := s.App.Group("locations")
 	router.Get("/", s.FindLocations)
 	router.Post("/", BasicAuthHandler(), s.UserIsLocationAdmin, s.CreateLocation)
 	router.Delete("/:id", BasicAuthHandler(), s.UserIsLocationAdmin, s.DeleteLocation)
 }
 
 func (s *Server) Cors() {
-	s.app.Use(CorsHandler())
+	s.App.Use(CorsHandler())
 }
