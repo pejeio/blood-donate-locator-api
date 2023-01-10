@@ -4,24 +4,24 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/sync/errgroup"
 )
 
 func (s *Server) CreateLocation(c *fiber.Ctx) error {
-	payload := new(types.CreateLocationRequest)
-	if err := c.BodyParser(payload); err != nil {
+	log.Println("Creating location")
+	body := new(types.CreateLocationRequest)
+	if err := c.BodyParser(body); err != nil {
 		log.Errorln(err)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(
 			JsonErrorResponse{Message: err.Error()},
 		)
 	}
-	errors := ValidateStruct(*payload)
+	errors := ValidateStruct(*body)
 	if errors != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
-	newLocation, err := s.Store.CreateLocation(s.Ctx, *payload)
+	newLocation, err := s.Store.CreateLocation(s.Ctx, *body)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
@@ -38,16 +38,17 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 		locationsCount int64
 	)
 
-	limitOffset, err := GetPaginationQueryParams(c)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Message: err.Error()},
-		)
+	pagQParams, _ := GetPaginationQueryParams(c)
+
+	query := types.FindLocationsRequest{
+		City:       c.Query("city"),
+		PostalCode: c.Query("postal_code"),
+		Limit:      pagQParams.Limit,
+		Offset:     pagQParams.Offset,
 	}
-	findOptions := PaginationMongoOptions(limitOffset)
 
 	g.Go(func() error {
-		locs, err := s.Store.GetLocations(s.Ctx, bson.M{}, *findOptions)
+		locs, err := s.Store.GetLocations(s.Ctx, query)
 		locations = locs
 		return err
 	})
@@ -71,6 +72,7 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 }
 
 func (s *Server) DeleteLocation(c *fiber.Ctx) error {
+	log.Println("Deleting location")
 	id := c.Params("id")
 	delCount, err := s.Store.DeleteLocation(s.Ctx, id)
 	if err != nil {

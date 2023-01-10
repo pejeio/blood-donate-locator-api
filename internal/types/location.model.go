@@ -16,8 +16,8 @@ type Address struct {
 	Street      string `json:"street,omitempty"`
 	Number      int32  `json:"number,omitempty"`
 	City        string `json:"city,omitempty"`
-	PostalCode  string `json:"postal_code,omitempty"`
-	CountryCode string `json:"country_code,omitempty"`
+	PostalCode  string `json:"postal_code,omitempty" bson:"postal_code"`
+	CountryCode string `json:"country_code,omitempty" bson:"country_code"`
 }
 
 type Location struct {
@@ -40,9 +40,16 @@ func (l *Location) MarshalBSON() ([]byte, error) {
 }
 
 type CreateLocationRequest struct {
-	Name        string       `json:"name" validate:"required"`
+	Name        string       `json:"name" validate:"required,min=5"`
 	Coordinates *Coordinates `json:"coordinates" validate:"required"`
 	Address     *Address     `json:"address"`
+}
+
+type FindLocationsRequest struct {
+	PostalCode string
+	City       string
+	Limit      int
+	Offset     int
 }
 
 type PaginationRequest struct {

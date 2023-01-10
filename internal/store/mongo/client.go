@@ -19,12 +19,23 @@ func (c *Client) LocationsCollection() *mongo.Collection {
 	return c.Database.Collection("locations")
 }
 
-func (c *Client) GetLocations(ctx context.Context, filter bson.M, findOptions options.FindOptions) ([]types.Location, error) {
-	findOptions.SetSort(bson.D{{Key: "created_at", Value: -1}})
+func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequest) ([]types.Location, error) {
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
+	opts.SetLimit(int64(query.Limit))
+	opts.SetSkip(int64(query.Offset))
+
+	filter := bson.M{}
+	if query.City != "" {
+		filter["address.city"] = query.City
+	}
+	if query.PostalCode != "" {
+		filter["address.postal_code"] = query.PostalCode
+	}
 
 	locations := make([]types.Location, 0)
 
-	cursor, err := c.LocationsCollection().Find(ctx, filter, &findOptions)
+	cursor, err := c.LocationsCollection().Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -47,16 +58,15 @@ func (c *Client) CreateLocation(ctx context.Context, loc types.CreateLocationReq
 		Coordinates: loc.Coordinates,
 		Address:     loc.Address,
 	}
+	_, err := newLocation.MarshalBSON()
+	if err != nil {
+		return nil, err
+	}
 	doc, err := c.LocationsCollection().InsertOne(ctx, newLocation)
 	if err != nil {
 		return nil, err
 	}
 	newLocation.ID = doc.InsertedID.(primitive.ObjectID)
-
-	_, err = newLocation.MarshalBSON()
-	if err != nil {
-		return nil, err
-	}
 
 	return &newLocation, err
 }

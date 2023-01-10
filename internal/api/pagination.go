@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type PageLimitOffset struct {
@@ -46,11 +45,4 @@ func GetPaginationQueryParams(c *fiber.Ctx) (*PageLimitOffset, error) {
 		Limit:  intLimit,
 		Offset: intOffset,
 	}, nil
-}
-
-func PaginationMongoOptions(p *PageLimitOffset) *options.FindOptions {
-	opts := options.Find()
-	opts.SetLimit(int64(p.Limit))
-	opts.SetSkip(int64(p.Offset))
-	return opts
 }

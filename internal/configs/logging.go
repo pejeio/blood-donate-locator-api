@@ -6,6 +6,6 @@ import "github.com/sirupsen/logrus"
 func SetUpLogging() {
 	customFormatter := new(logrus.TextFormatter)
 	customFormatter.DisableLevelTruncation = true
-	customFormatter.FullTimestamp = true
+	customFormatter.DisableTimestamp = true
 	logrus.SetFormatter(customFormatter)
 }

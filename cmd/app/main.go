@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	configs.SetUpLogging()
 	log.Info("🛫 Starting the app")
 
 	// Config
