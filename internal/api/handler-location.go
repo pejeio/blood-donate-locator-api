@@ -71,6 +71,20 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 	})
 }
 
+func (s *Server) FindLocation(c *fiber.Ctx) error {
+	id := c.Params("id")
+	loc, err := s.Store.GetLocationById(s.Ctx, id)
+	if err != nil {
+		if err.Error() == "not found" {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			JsonErrorResponse{Message: err.Error()},
+		)
+	}
+	return c.JSON(loc)
+}
+
 func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 	log.Println("Deleting location")
 	id := c.Params("id")

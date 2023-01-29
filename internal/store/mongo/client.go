@@ -52,6 +52,28 @@ func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequ
 	return locations, nil
 }
 
+func (c *Client) GetLocationById(ctx context.Context, id string) (types.Location, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return types.Location{}, err
+	}
+	filter := bson.M{"_id": oid}
+	res := c.LocationsCollection().FindOne(ctx, filter)
+	if res.Err() != nil {
+		if res.Err() == mongo.ErrNoDocuments {
+			return types.Location{}, errors.New("not found")
+		}
+		return types.Location{}, res.Err()
+	}
+	location := types.Location{}
+	err = res.Decode(&location)
+	if err != nil {
+		return types.Location{}, err
+	}
+
+	return location, nil
+}
+
 func (c *Client) CreateLocation(ctx context.Context, loc types.CreateLocationRequest) (*types.Location, error) {
 	newLocation := types.Location{
 		Name:        loc.Name,

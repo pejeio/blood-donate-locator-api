@@ -43,6 +43,7 @@ func (s *Server) Routes() {
 	// Locations
 	router := s.App.Group("locations")
 	router.Get("/", s.FindLocations)
+	router.Get("/:id", s.FindLocation)
 	router.Post("/", BasicAuthHandler(), s.UserIsLocationAdmin, s.CreateLocation)
 	router.Delete("/:id", BasicAuthHandler(), s.UserIsLocationAdmin, s.DeleteLocation)
 }
