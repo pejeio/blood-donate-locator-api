@@ -1,6 +1,8 @@
 package api
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
 	log "github.com/sirupsen/logrus"
@@ -66,8 +68,61 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(types.ResponseWithPagination{
-		Data: locations,
+		Response: types.Response{
+			Data: locations,
+		},
 		Meta: types.ResponseMeta{Count: locationsCount},
+	})
+}
+
+func (s *Server) FindLocationsByCoordinates(c *fiber.Ctx) error {
+	var (
+		g         errgroup.Group
+		locations []types.Location
+	)
+
+	lat, err := strconv.ParseFloat(c.Query("latitude"), 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			JsonErrorResponse{Message: "could not parse latitude"},
+		)
+	}
+
+	lng, err := strconv.ParseFloat(c.Query("longitude"), 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			JsonErrorResponse{Message: "could not parse longitude"},
+		)
+	}
+
+	maxDist, err := strconv.Atoi(c.Query("max_distance"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			JsonErrorResponse{Message: "could not parse max_distance"},
+		)
+	}
+
+	query := types.LookupLocationRequest{
+		Coordinates: &types.Coordinates{
+			Latitude:  lat,
+			Longitude: lng,
+		},
+		MaxDistance: maxDist,
+	}
+
+	g.Go(func() error {
+		locs, err := s.Store.ReverseGeoCodeLocations(s.Ctx, query)
+		locations = locs
+		return err
+	})
+	if err := g.Wait(); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			JsonErrorResponse{Message: err.Error()},
+		)
+	}
+
+	return c.JSON(types.Response{
+		Data: locations,
 	})
 }
 
@@ -104,8 +159,8 @@ func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 	)
 }
 
-func (l *Server) UserIsLocationAdmin(c *fiber.Ctx) error {
-	if can, _ := l.Enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
+func (s *Server) UserIsLocationAdmin(c *fiber.Ctx) error {
+	if can, _ := s.Enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
 		return c.Status(fiber.StatusForbidden).JSON(
 			JsonErrorResponse{Message: "Forbidden"},
 		)

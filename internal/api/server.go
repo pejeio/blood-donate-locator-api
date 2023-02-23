@@ -35,6 +35,7 @@ func (s *Server) Start() {
 	}
 	s.Cors()
 	s.Routes()
+	s.Store.CreateLocationIndexes(s.Ctx)
 	log.Printf("👂 Listening and serving HTTP on %s\n", s.Config.ServerPort)
 	log.Fatal(s.App.Listen(":" + s.Config.ServerPort))
 }
@@ -43,6 +44,7 @@ func (s *Server) Routes() {
 	// Locations
 	router := s.App.Group("locations")
 	router.Get("/", s.FindLocations)
+	router.Get("/lookup", s.FindLocationsByCoordinates)
 	router.Get("/:id", s.FindLocation)
 	router.Post("/", BasicAuthHandler(), s.UserIsLocationAdmin, s.CreateLocation)
 	router.Delete("/:id", BasicAuthHandler(), s.UserIsLocationAdmin, s.DeleteLocation)

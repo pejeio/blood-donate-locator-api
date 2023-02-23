@@ -8,8 +8,13 @@ import (
 )
 
 type Coordinates struct {
-	Latitude  float32 `json:"lat,omitempty" validate:"number"`
-	Longitude float32 `json:"lng,omitempty" validate:"number"`
+	Latitude  float64 `json:"lat,omitempty" validate:"number"`
+	Longitude float64 `json:"lng,omitempty" validate:"number"`
+}
+
+type GeoJSONPoint struct {
+	Type        string     `bson:"type" json:"type"`
+	Coordinates [2]float64 `bson:"coordinates" json:"coordinates"`
 }
 
 type Address struct {
@@ -21,12 +26,12 @@ type Address struct {
 }
 
 type Location struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name        string             `bson:"name" json:"name"`
-	Address     *Address           `bson:"address" json:"address"`
-	Coordinates *Coordinates       `bson:"coordinates" json:"coordinates,omitempty"`
-	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name      string             `bson:"name" json:"name"`
+	Address   *Address           `bson:"address" json:"address"`
+	Geometry  *GeoJSONPoint      `bson:"geometry" json:"geometry,omitempty"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 func (l *Location) MarshalBSON() ([]byte, error) {
@@ -50,6 +55,11 @@ type FindLocationsRequest struct {
 	City       string
 	Limit      int
 	Offset     int
+}
+
+type LookupLocationRequest struct {
+	*Coordinates
+	MaxDistance int `json:"max_distance"`
 }
 
 type PaginationRequest struct {

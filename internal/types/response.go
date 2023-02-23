@@ -4,7 +4,10 @@ type ResponseMeta struct {
 	Count int64 `json:"count"`
 }
 
+type Response struct {
+	Data interface{} `json:"data"`
+}
 type ResponseWithPagination struct {
-	Data interface{}  `json:"data"`
+	Response
 	Meta ResponseMeta `json:"_meta"`
 }
