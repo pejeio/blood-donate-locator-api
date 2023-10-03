@@ -41,13 +41,18 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Routes() {
-	// Locations
-	router := s.App.Group("locations")
-	router.Get("/", s.FindLocations)
-	router.Get("/lookup", s.FindLocationsByCoordinates)
-	router.Get("/:id", s.FindLocation)
-	router.Post("/", BasicAuthHandler(), s.UserIsLocationAdmin, s.CreateLocation)
-	router.Delete("/:id", BasicAuthHandler(), s.UserIsLocationAdmin, s.DeleteLocation)
+	// Group routes for "locations"
+	locationRouter := s.App.Group("locations")
+
+	// Middleware for routes requiring Basic Authentication
+	authMiddleware := BasicAuthHandler()
+
+	// Define routes
+	locationRouter.Get("/", s.FindLocations)
+	locationRouter.Get("/lookup", s.FindLocationsByCoordinates)
+	locationRouter.Get("/:id", s.FindLocation)
+	locationRouter.Post("/", authMiddleware, s.UserIsLocationAdmin, s.CreateLocation)
+	locationRouter.Delete("/:id", authMiddleware, s.UserIsLocationAdmin, s.DeleteLocation)
 }
 
 func (s *Server) Cors() {

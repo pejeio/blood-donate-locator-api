@@ -20,11 +20,14 @@ const (
 
 func GetPaginationQueryParams(c *fiber.Ctx) (*PageLimitOffset, error) {
 	q := new(types.PaginationRequest)
-	err := c.QueryParser(q)
-	if err != nil {
+
+	// Parse query parameters into q
+	if err := c.QueryParser(q); err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
+	// Set default values if Limit or Offset are empty
 	if q.Limit == "" {
 		q.Limit = strconv.Itoa(DefaultLimit)
 	}
@@ -32,6 +35,7 @@ func GetPaginationQueryParams(c *fiber.Ctx) (*PageLimitOffset, error) {
 		q.Offset = strconv.Itoa(DefaultOffset)
 	}
 
+	// Parse Limit and Offset to integers
 	intOffset, err := strconv.Atoi(q.Offset)
 	if err != nil {
 		return nil, err
