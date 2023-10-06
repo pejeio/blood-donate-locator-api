@@ -1,0 +1,32 @@
+# linters based on golangci-lint version 1.49
+linters:
+  disable-all: true
+  enable:
+    - dogsled
+    - errcheck
+    - exportloopref
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - gofmt
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - nolintlint
+    - prealloc
+    - revive
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+linters-settings:
+  errcheck:
+    check-blank: true

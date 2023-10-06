@@ -13,7 +13,7 @@ func BasicAuthHandler() fiber.Handler {
 		ContextUsername: "_user",
 		Unauthorized: func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusUnauthorized).JSON(
-				JsonErrorResponse{Message: "Unauthorized"},
+				JSONErrorResponse{Message: "Unauthorized"},
 			)
 		},
 	})

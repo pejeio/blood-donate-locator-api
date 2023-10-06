@@ -15,7 +15,7 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 	if err := c.BodyParser(body); err != nil {
 		log.Errorln(err)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(
-			JsonErrorResponse{Message: err.Error()},
+			JSONErrorResponse{Message: err.Error()},
 		)
 	}
 	errors := ValidateStruct(*body)
@@ -27,7 +27,7 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Message: err.Error()},
+			JSONErrorResponse{Message: err.Error()},
 		)
 	}
 	return c.Status(fiber.StatusCreated).JSON(newLocation)
@@ -40,7 +40,10 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 		locationsCount int64
 	)
 
-	pagQParams, _ := GetPaginationQueryParams(c)
+	pagQParams, err := GetPaginationQueryParams(c)
+	if err != nil {
+		return err
+	}
 
 	query := types.FindLocationsRequest{
 		City:       c.Query("city"),
@@ -63,7 +66,7 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 
 	if err := g.Wait(); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Message: err.Error()},
+			JSONErrorResponse{Message: err.Error()},
 		)
 	}
 
@@ -84,21 +87,21 @@ func (s *Server) FindLocationsByCoordinates(c *fiber.Ctx) error {
 	lat, err := strconv.ParseFloat(c.Query("latitude"), 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
-			JsonErrorResponse{Message: "could not parse latitude"},
+			JSONErrorResponse{Message: "could not parse latitude"},
 		)
 	}
 
 	lng, err := strconv.ParseFloat(c.Query("longitude"), 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
-			JsonErrorResponse{Message: "could not parse longitude"},
+			JSONErrorResponse{Message: "could not parse longitude"},
 		)
 	}
 
 	maxDist, err := strconv.Atoi(c.Query("max_distance"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
-			JsonErrorResponse{Message: "could not parse max_distance"},
+			JSONErrorResponse{Message: "could not parse max_distance"},
 		)
 	}
 
@@ -117,7 +120,7 @@ func (s *Server) FindLocationsByCoordinates(c *fiber.Ctx) error {
 	})
 	if err := g.Wait(); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Message: err.Error()},
+			JSONErrorResponse{Message: err.Error()},
 		)
 	}
 
@@ -128,13 +131,13 @@ func (s *Server) FindLocationsByCoordinates(c *fiber.Ctx) error {
 
 func (s *Server) FindLocation(c *fiber.Ctx) error {
 	id := c.Params("id")
-	loc, err := s.Store.GetLocationById(s.Ctx, id)
+	loc, err := s.Store.GetLocationByID(s.Ctx, id)
 	if err != nil {
 		if err.Error() == "not found" {
 			return c.SendStatus(fiber.StatusNotFound)
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Message: err.Error()},
+			JSONErrorResponse{Message: err.Error()},
 		)
 	}
 	return c.JSON(loc)
@@ -146,12 +149,12 @@ func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 	delCount, err := s.Store.DeleteLocation(s.Ctx, id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
-			JsonErrorResponse{Message: err.Error()},
+			JSONErrorResponse{Message: err.Error()},
 		)
 	}
 	if delCount == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(
-			JsonErrorResponse{Message: "Location not found"},
+			JSONErrorResponse{Message: "Location not found"},
 		)
 	}
 	return c.Status(fiber.StatusOK).JSON(
@@ -160,9 +163,15 @@ func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 }
 
 func (s *Server) UserIsLocationAdmin(c *fiber.Ctx) error {
-	if can, _ := s.Enforcer.Enforce(c.Locals("_user"), "locations", "write"); !can {
+	can, err := s.Enforcer.Enforce(c.Locals("_user"), "locations", "write")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			JSONErrorResponse{Message: err.Error()},
+		)
+	}
+	if !can {
 		return c.Status(fiber.StatusForbidden).JSON(
-			JsonErrorResponse{Message: "Forbidden"},
+			JSONErrorResponse{Message: "Forbidden"},
 		)
 	}
 	return c.Next()

@@ -27,21 +27,21 @@ func main() {
 	defer cancelFunc()
 
 	// Database
-	dbClient, err := mongo.Init(&cfg, ctx)
+	dbClient, err := mongo.Init(ctx, &cfg)
 	if err != nil {
-		log.Fatal("❌ Failed to connect to the database", err)
+		log.Error("❌ Failed to connect to the database", err)
 	}
 
 	// Authorization
 	enforcer, err := api.NewEnforcer(&cfg)
 	if err != nil {
-		log.Fatal("❌ Failed to set up authorization", err)
+		log.Error("❌ Failed to set up authorization", err)
 	}
 
 	// Fiber App
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	// Server
-	server := api.NewServer(&cfg, dbClient, enforcer, app, ctx)
+	server := api.NewServer(ctx, &cfg, dbClient, enforcer, app)
 	server.Start()
 }

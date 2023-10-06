@@ -20,10 +20,10 @@ func (c *Client) LocationsCollection() *mongo.Collection {
 }
 
 func (c *Client) CreateLocationIndexes(ctx context.Context) error {
-	geoJsonIdxModel := mongo.IndexModel{
+	geoJSONIdxModel := mongo.IndexModel{
 		Keys: bson.D{primitive.E{Key: "geometry", Value: "2dsphere"}},
 	}
-	_, err := c.LocationsCollection().Indexes().CreateOne(ctx, geoJsonIdxModel)
+	_, err := c.LocationsCollection().Indexes().CreateOne(ctx, geoJSONIdxModel)
 	return err
 }
 
@@ -96,7 +96,7 @@ func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequ
 	return locations, nil
 }
 
-func (c *Client) GetLocationById(ctx context.Context, id string) (types.Location, error) {
+func (c *Client) GetLocationByID(ctx context.Context, id string) (types.Location, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return types.Location{}, err
@@ -141,12 +141,12 @@ func (c *Client) CreateLocation(ctx context.Context, loc types.CreateLocationReq
 }
 
 func (c *Client) DeleteLocation(ctx context.Context, id string) (int, error) {
-	objId, err := primitive.ObjectIDFromHex(id)
+	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return 0, errors.New("Invalid ID")
+		return 0, errors.New("invalid ID")
 	}
-	filter := bson.M{"_id": objId}
-	res, err := c.LocationsCollection().DeleteOne(context.Background(), filter)
+	filter := bson.M{"_id": objID}
+	res, err := c.LocationsCollection().DeleteOne(ctx, filter)
 	if err != nil {
 		return 0, err
 	}

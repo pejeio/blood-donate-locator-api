@@ -18,26 +18,35 @@ type Server struct {
 	Ctx      context.Context
 }
 
-func NewServer(c *configs.Config, s store.Store, enf *casbin.Enforcer, app *fiber.App, ctx context.Context) *Server {
+func NewServer(ctx context.Context, c *configs.Config, s store.Store, enf *casbin.Enforcer, app *fiber.App) *Server {
 	return &Server{
+		Ctx:      ctx,
 		App:      app,
 		Config:   c,
 		Store:    s,
 		Enforcer: enf,
-		Ctx:      ctx,
 	}
 }
 
 func (s *Server) Start() {
-	err := configs.InitAuthUsers()
-	if err != nil {
+	// Initialize authentication users
+	if err := configs.InitAuthUsers(); err != nil {
 		log.Println(err)
 	}
+
+	// Set up CORS and routes
 	s.Cors()
 	s.Routes()
-	s.Store.CreateLocationIndexes(s.Ctx)
-	log.Printf("👂 Listening and serving HTTP on %s\n", s.Config.ServerPort)
-	log.Fatal(s.App.Listen(":" + s.Config.ServerPort))
+
+	// Create location indexes
+	if err := s.Store.CreateLocationIndexes(s.Ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	// Start the server
+	serverAddr := ":" + s.Config.ServerPort
+	log.Printf("👂 Listening and serving HTTP on %s\n", serverAddr)
+	log.Fatal(s.App.Listen(serverAddr))
 }
 
 func (s *Server) Routes() {

@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func Init(c *configs.Config, ctx context.Context) (store.Store, error) {
+func Init(ctx context.Context, c *configs.Config) (store.Store, error) {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?maxPoolSize=20&w=majority", c.DBUserName, c.DBUserPassword, c.DBHost, c.DBPort)
 	mClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
