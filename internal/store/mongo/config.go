@@ -14,7 +14,7 @@ import (
 )
 
 func Init(ctx context.Context, c *configs.Config) (store.Store, error) {
-	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?maxPoolSize=20&w=majority", c.DBUserName, c.DBUserPassword, c.DBHost, c.DBPort)
+	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/?maxPoolSize=20&w=majority&authSource=%s", c.DBUserName, c.DBUserPassword, c.DBHost, c.DBPort, c.DBName)
 	mClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err

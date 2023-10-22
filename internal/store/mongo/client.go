@@ -69,13 +69,7 @@ func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequ
 	opts.SetLimit(int64(query.Limit))
 	opts.SetSkip(int64(query.Offset))
 
-	filter := bson.M{}
-	if query.City != "" {
-		filter["address.city"] = query.City
-	}
-	if query.PostalCode != "" {
-		filter["address.postal_code"] = query.PostalCode
-	}
+	filter := createFindLocationsFilter(query)
 
 	locations := make([]types.Location, 0)
 
@@ -94,6 +88,12 @@ func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequ
 	}
 
 	return locations, nil
+}
+
+func (c *Client) CountLocations(ctx context.Context, query types.FindLocationsRequest) (int64, error) {
+	filter := createFindLocationsFilter(query)
+
+	return c.LocationsCollection().CountDocuments(ctx, filter)
 }
 
 func (c *Client) GetLocationByID(ctx context.Context, id string) (types.Location, error) {
@@ -125,7 +125,8 @@ func (c *Client) CreateLocation(ctx context.Context, loc types.CreateLocationReq
 			Type:        "Point",
 			Coordinates: [2]float64{loc.Coordinates.Longitude, loc.Coordinates.Latitude},
 		},
-		Address: loc.Address,
+		Address:   loc.Address,
+		CreatedBy: loc.CreatedBy,
 	}
 	_, err := newLocation.MarshalBSON()
 	if err != nil {
@@ -153,8 +154,13 @@ func (c *Client) DeleteLocation(ctx context.Context, id string) (int, error) {
 	return int(res.DeletedCount), nil
 }
 
-func (c *Client) CountLocations(ctx context.Context) (int64, error) {
-	filter := bson.D{}
-
-	return c.LocationsCollection().CountDocuments(ctx, filter)
+func createFindLocationsFilter(query types.FindLocationsRequest) primitive.M {
+	filter := bson.M{}
+	if query.City != "" {
+		filter["address.city"] = query.City
+	}
+	if query.PostalCode != "" {
+		filter["address.postal_code"] = query.PostalCode
+	}
+	return filter
 }

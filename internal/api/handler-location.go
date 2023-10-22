@@ -11,6 +11,8 @@ import (
 
 func (s *Server) CreateLocation(c *fiber.Ctx) error {
 	log.Println("Creating location")
+
+	// Parse the request body
 	body := new(types.CreateLocationRequest)
 	if err := c.BodyParser(body); err != nil {
 		log.Errorln(err)
@@ -18,21 +20,28 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 			JSONErrorResponse{Message: err.Error()},
 		)
 	}
-	errors := ValidateStruct(*body)
-	if errors != nil {
+
+	// Validate the request body
+	if errors := ValidateStruct(*body); errors != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
-	newLocation, err := s.Store.CreateLocation(s.Ctx, *body)
+	// Set the created_by field
+	body.CreatedBy = GetUserIDFromCtx(c)
 
+	// Create the location
+	newLocation, err := s.Store.CreateLocation(s.Ctx, *body)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			JSONErrorResponse{Message: err.Error()},
 		)
 	}
+
+	// Return the created location
 	return c.Status(fiber.StatusCreated).JSON(newLocation)
 }
 
+// FindLocations retrieves a list of locations based on the provided query parameters.
 func (s *Server) FindLocations(c *fiber.Ctx) error {
 	var (
 		g              errgroup.Group
@@ -59,7 +68,7 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 	})
 
 	g.Go(func() error {
-		count, err := s.Store.CountLocations(s.Ctx)
+		count, err := s.Store.CountLocations(s.Ctx, query)
 		locationsCount = count
 		return err
 	})
@@ -78,6 +87,7 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 	})
 }
 
+// FindLocationsByCoordinates finds locations by coordinates.
 func (s *Server) FindLocationsByCoordinates(c *fiber.Ctx) error {
 	var (
 		g         errgroup.Group
@@ -129,6 +139,7 @@ func (s *Server) FindLocationsByCoordinates(c *fiber.Ctx) error {
 	})
 }
 
+// FindLocation finds the location based on the provided ID.
 func (s *Server) FindLocation(c *fiber.Ctx) error {
 	id := c.Params("id")
 	loc, err := s.Store.GetLocationByID(s.Ctx, id)
@@ -143,6 +154,7 @@ func (s *Server) FindLocation(c *fiber.Ctx) error {
 	return c.JSON(loc)
 }
 
+// DeleteLocation deletes a location.
 func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 	log.Println("Deleting location")
 	id := c.Params("id")
@@ -160,19 +172,4 @@ func (s *Server) DeleteLocation(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(
 		fiber.Map{"deleted": delCount},
 	)
-}
-
-func (s *Server) UserIsLocationAdmin(c *fiber.Ctx) error {
-	can, err := s.Enforcer.Enforce(c.Locals("_user"), "locations", "write")
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			JSONErrorResponse{Message: err.Error()},
-		)
-	}
-	if !can {
-		return c.Status(fiber.StatusForbidden).JSON(
-			JSONErrorResponse{Message: "Forbidden"},
-		)
-	}
-	return c.Next()
 }

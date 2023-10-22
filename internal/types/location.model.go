@@ -30,6 +30,7 @@ type Location struct {
 	Name      string             `bson:"name" json:"name"`
 	Address   *Address           `bson:"address" json:"address"`
 	Geometry  *GeoJSONPoint      `bson:"geometry" json:"geometry,omitempty"`
+	CreatedBy string             `bson:"created_by" json:"-"`
 	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }
@@ -45,7 +46,8 @@ func (l *Location) MarshalBSON() ([]byte, error) {
 }
 
 type CreateLocationRequest struct {
-	Name        string       `json:"name" validate:"required,min=5"`
+	Name        string `json:"name" validate:"required,min=5"`
+	CreatedBy   string
 	Coordinates *Coordinates `json:"coordinates" validate:"required"`
 	Address     *Address     `json:"address"`
 }

@@ -3,28 +3,28 @@ package api
 import (
 	"context"
 
-	"github.com/casbin/casbin/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/pejeio/blood-donate-locator-api/internal/auth"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/store"
 	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
-	App      *fiber.App
-	Config   *configs.Config
-	Store    store.Store
-	Enforcer *casbin.Enforcer
-	Ctx      context.Context
+	Ctx        context.Context
+	App        *fiber.App
+	Config     *configs.Config
+	AuthClient *auth.Client
+	Store      store.Store
 }
 
-func NewServer(ctx context.Context, c *configs.Config, s store.Store, enf *casbin.Enforcer, app *fiber.App) *Server {
+func NewServer(ctx context.Context, c *configs.Config, s store.Store, authC *auth.Client, app *fiber.App) *Server {
 	return &Server{
-		Ctx:      ctx,
-		App:      app,
-		Config:   c,
-		Store:    s,
-		Enforcer: enf,
+		Ctx:        ctx,
+		App:        app,
+		Config:     c,
+		AuthClient: authC,
+		Store:      s,
 	}
 }
 
@@ -53,15 +53,15 @@ func (s *Server) Routes() {
 	// Group routes for "locations"
 	locationRouter := s.App.Group("locations")
 
-	// Middleware for routes requiring Basic Authentication
-	authMiddleware := BasicAuthHandler()
+	// Middleware that checks if the token is valid and sets the user ID to the Fiber Locals
+	authMiddleware := Protect(s.AuthClient)
 
 	// Define routes
-	locationRouter.Get("/", s.FindLocations)
+	locationRouter.Get("/", authMiddleware, s.FindLocations)
 	locationRouter.Get("/lookup", s.FindLocationsByCoordinates)
 	locationRouter.Get("/:id", s.FindLocation)
-	locationRouter.Post("/", authMiddleware, s.UserIsLocationAdmin, s.CreateLocation)
-	locationRouter.Delete("/:id", authMiddleware, s.UserIsLocationAdmin, s.DeleteLocation)
+	locationRouter.Post("/", authMiddleware, CreateLocationAuthzMiddleware(s.AuthClient), s.CreateLocation)
+	locationRouter.Delete("/:id", DeleteLocationAuthzMiddleware(s.AuthClient), s.DeleteLocation)
 }
 
 func (s *Server) Cors() {

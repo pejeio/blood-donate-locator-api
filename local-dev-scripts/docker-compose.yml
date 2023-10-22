@@ -1,0 +1,9 @@
+services:
+  mongodb:
+    image: mongo:7.0.2
+    ports:
+      - 27017:27017
+    restart: always
+    volumes:
+      - ./mongodb_init.js:/docker-entrypoint-initdb.d/mongodb_init.js:ro
+

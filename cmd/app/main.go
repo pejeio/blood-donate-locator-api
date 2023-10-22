@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/api"
+	"github.com/pejeio/blood-donate-locator-api/internal/auth"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/store/mongo"
 	log "github.com/sirupsen/logrus"
@@ -32,8 +33,8 @@ func main() {
 		log.Error("❌ Failed to connect to the database", err)
 	}
 
-	// Authorization
-	enforcer, err := api.NewEnforcer(&cfg)
+	// Authentication
+	authClient := auth.NewClient(cfg.KCBaseURL, cfg.KCClientID, cfg.KCClientSecret, cfg.KCRealm)
 	if err != nil {
 		log.Error("❌ Failed to set up authorization", err)
 	}
@@ -42,6 +43,6 @@ func main() {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 
 	// Server
-	server := api.NewServer(ctx, &cfg, dbClient, enforcer, app)
+	server := api.NewServer(ctx, &cfg, dbClient, authClient, app)
 	server.Start()
 }
