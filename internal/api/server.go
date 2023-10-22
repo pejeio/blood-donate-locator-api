@@ -29,11 +29,6 @@ func NewServer(ctx context.Context, c *configs.Config, s store.Store, authC *aut
 }
 
 func (s *Server) Start() {
-	// Initialize authentication users
-	if err := configs.InitAuthUsers(); err != nil {
-		log.Println(err)
-	}
-
 	// Set up CORS and routes
 	s.Cors()
 	s.Routes()

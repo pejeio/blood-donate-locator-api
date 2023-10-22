@@ -14,35 +14,41 @@ import (
 )
 
 func main() {
+	// Set up logging
 	configs.SetUpLogging()
+
 	log.Info("🛫 Starting the app")
 
-	// Config
+	// Load config
 	cfg, err := configs.LoadConfig()
 	if err != nil {
 		log.Fatal("🧐 Could not load environment variables", err)
 	}
 
-	// Init context
+	// Set up context with signal handling
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGKILL, syscall.SIGINT)
 	defer cancelFunc()
 
-	// Database
+	// Initialize database client
 	dbClient, err := mongo.Init(ctx, &cfg)
 	if err != nil {
 		log.Error("❌ Failed to connect to the database", err)
 	}
 
-	// Authentication
+	// Initialize authentication client
 	authClient := auth.NewClient(cfg.KCBaseURL, cfg.KCClientID, cfg.KCClientSecret, cfg.KCRealm)
 	if err != nil {
-		log.Error("❌ Failed to set up authorization", err)
+		log.Error("❌ Failed to set up authentication client", err)
 	}
 
-	// Fiber App
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	// Create Fiber app
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
 
-	// Server
+	// Create API server
 	server := api.NewServer(ctx, &cfg, dbClient, authClient, app)
+
+	// Start server
 	server.Start()
 }
