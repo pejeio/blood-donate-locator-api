@@ -10,7 +10,12 @@ type JSONErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// GetBearerTokenFromHeaders retrieves the bearer token from the headers of a fiber.Ctx object.
 func GetBearerTokenFromHeaders(c *fiber.Ctx) string {
+	if c == nil {
+		return ""
+	}
+
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
 		return ""
