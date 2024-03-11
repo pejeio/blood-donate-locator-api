@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/pejeio/blood-donate-locator-api/internal/auth"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 func CorsHandler() fiber.Handler {
@@ -46,25 +46,25 @@ func Protect(authClient *auth.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		accessToken := GetBearerTokenFromHeaders(c)
 
-		log.Println("Retrospecting token...")
+		log.Debug().Msg(("Retrospecting token..."))
 		rptResult, err := authClient.GC.RetrospectToken(c.Context(), accessToken, authClient.ClientID, authClient.ClientSecret, authClient.Realm)
 		if err != nil {
-			log.Println("Token is invalid.")
+			log.Debug().Msg("Token is invalid.")
 			return UnauthorizedJSONErrorResponse(c)
 		}
 
 		isTokenValid := *rptResult.Active
 		if !isTokenValid {
-			log.Println("Token is invalid.")
+			log.Debug().Msg("Token is invalid.")
 			return c.Status(fiber.StatusUnauthorized).JSON(JSONErrorResponse{
 				Message: "Unauthorized",
 			})
 		}
 
-		log.Println("Decoding access token...")
+		log.Trace().Msg("Decoding access token...")
 		_, claims, err := authClient.GC.DecodeAccessToken(c.Context(), accessToken, authClient.Realm)
 		if err != nil {
-			log.Println("Token is invalid.")
+			log.Debug().Msg("Token is invalid.")
 			return UnauthorizedJSONErrorResponse(c)
 		}
 

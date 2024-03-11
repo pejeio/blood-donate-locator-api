@@ -5,17 +5,17 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
 
 func (s *Server) CreateLocation(c *fiber.Ctx) error {
-	log.Println("Creating location")
+	log.Info().Msg("Creating location")
 
 	// Parse the request body
 	body := new(types.CreateLocationRequest)
 	if err := c.BodyParser(body); err != nil {
-		log.Errorln(err)
+		log.Error().Err(err)
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(
 			JSONErrorResponse{Message: err.Error()},
 		)
@@ -43,12 +43,6 @@ func (s *Server) CreateLocation(c *fiber.Ctx) error {
 
 // FindLocations retrieves a list of locations based on the provided query parameters.
 func (s *Server) FindLocations(c *fiber.Ctx) error {
-	var (
-		g              errgroup.Group
-		locations      []types.Location
-		locationsCount int64
-	)
-
 	pagQParams, err := GetPaginationQueryParams(c)
 	if err != nil {
 		return err
@@ -61,19 +55,8 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 		Offset:     pagQParams.Offset,
 	}
 
-	g.Go(func() error {
-		locs, err := s.Store.GetLocations(s.Ctx, query)
-		locations = locs
-		return err
-	})
-
-	g.Go(func() error {
-		count, err := s.Store.CountLocations(s.Ctx, query)
-		locationsCount = count
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
+	locations, totalCount, err := s.Store.GetLocations(s.Ctx, query)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(
 			JSONErrorResponse{Message: err.Error()},
 		)
@@ -83,7 +66,7 @@ func (s *Server) FindLocations(c *fiber.Ctx) error {
 		Response: types.Response{
 			Data: locations,
 		},
-		Meta: types.ResponseMeta{Count: locationsCount},
+		Meta: types.ResponseMeta{Count: totalCount},
 	})
 }
 
@@ -156,7 +139,7 @@ func (s *Server) FindLocation(c *fiber.Ctx) error {
 
 // DeleteLocation deletes a location.
 func (s *Server) DeleteLocation(c *fiber.Ctx) error {
-	log.Println("Deleting location")
+	log.Info().Msg("Deleting location")
 	id := c.Params("id")
 	delCount, err := s.Store.DeleteLocation(s.Ctx, id)
 	if err != nil {

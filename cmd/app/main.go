@@ -10,19 +10,19 @@ import (
 	"github.com/pejeio/blood-donate-locator-api/internal/auth"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/store/mongo"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	// Set up logging
 	configs.SetUpLogging()
 
-	log.Info("🛫 Starting the app")
+	log.Info().Msg("🛫 Starting the app")
 
 	// Load config
 	cfg, err := configs.LoadConfig()
 	if err != nil {
-		log.Fatal("🧐 Could not load environment variables", err)
+		log.Fatal().Msgf("🧐 Could not load environment variables %v", err)
 	}
 
 	// Set up context with signal handling
@@ -32,13 +32,13 @@ func main() {
 	// Initialize database client
 	dbClient, err := mongo.Init(ctx, &cfg)
 	if err != nil {
-		log.Error("❌ Failed to connect to the database", err)
+		log.Error().Msgf("❌ Failed to connect to the database: %v", err)
 	}
 
 	// Initialize authentication client
 	authClient := auth.NewClient(cfg.KCBaseURL, cfg.KCClientID, cfg.KCClientSecret, cfg.KCRealm)
 	if err != nil {
-		log.Error("❌ Failed to set up authentication client", err)
+		log.Error().Msgf("❌ Failed to set up authentication client: %v", err)
 	}
 
 	// Create Fiber app

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/store"
@@ -25,7 +25,7 @@ func Init(ctx context.Context, c *configs.Config) (store.Store, error) {
 		return nil, err
 	}
 
-	log.Println("🚀 Connected successfully to the database")
+	log.Info().Msg("🚀 Connected successfully to the database")
 	client := &Client{
 		Database: mClient.Database(c.DBName),
 	}

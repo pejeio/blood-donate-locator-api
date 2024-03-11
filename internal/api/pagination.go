@@ -5,7 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pejeio/blood-donate-locator-api/internal/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type PageLimitOffset struct {
@@ -23,7 +23,7 @@ func GetPaginationQueryParams(c *fiber.Ctx) (*PageLimitOffset, error) {
 
 	// Parse query parameters into q
 	if err := c.QueryParser(q); err != nil {
-		log.Println(err)
+		log.Error().Err(err)
 		return nil, err
 	}
 

@@ -1,11 +1,17 @@
 package configs
 
-import "github.com/sirupsen/logrus"
+import (
+	"os"
 
-// Set custom config options for logrus
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+)
+
+// Set custom config options for zerolog
 func SetUpLogging() {
-	customFormatter := new(logrus.TextFormatter)
-	customFormatter.DisableLevelTruncation = true
-	customFormatter.DisableTimestamp = true
-	logrus.SetFormatter(customFormatter)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:          os.Stderr,
+		PartsExclude: []string{zerolog.TimestampFieldName},
+	})
 }

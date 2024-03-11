@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/sync/errgroup"
 )
 
 type Client struct {
@@ -63,7 +64,9 @@ func (c *Client) ReverseGeoCodeLocations(ctx context.Context, query types.Lookup
 	return locations, nil
 }
 
-func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequest) ([]types.Location, error) {
+func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequest) ([]types.Location, int64, error) {
+	var g errgroup.Group
+
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
 	opts.SetLimit(int64(query.Limit))
@@ -72,28 +75,38 @@ func (c *Client) GetLocations(ctx context.Context, query types.FindLocationsRequ
 	filter := createFindLocationsFilter(query)
 
 	locations := make([]types.Location, 0)
+	var locationCount int64
 
-	cursor, err := c.LocationsCollection().Find(ctx, filter, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	for cursor.Next(ctx) {
-		var location types.Location
-		err := cursor.Decode(&location)
+	g.Go(func() error {
+		cursor, err := c.LocationsCollection().Find(ctx, filter, opts)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		locations = append(locations, location)
+
+		for cursor.Next(ctx) {
+			var location types.Location
+			if err := cursor.Decode(&location); err != nil {
+				return err
+			}
+			locations = append(locations, location)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		count, err := c.LocationsCollection().CountDocuments(ctx, filter)
+		if err != nil {
+			return err
+		}
+		locationCount = count
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, 0, err
 	}
 
-	return locations, nil
-}
-
-func (c *Client) CountLocations(ctx context.Context, query types.FindLocationsRequest) (int64, error) {
-	filter := createFindLocationsFilter(query)
-
-	return c.LocationsCollection().CountDocuments(ctx, filter)
+	return locations, locationCount, nil
 }
 
 func (c *Client) GetLocationByID(ctx context.Context, id string) (types.Location, error) {

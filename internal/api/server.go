@@ -7,7 +7,7 @@ import (
 	"github.com/pejeio/blood-donate-locator-api/internal/auth"
 	"github.com/pejeio/blood-donate-locator-api/internal/configs"
 	"github.com/pejeio/blood-donate-locator-api/internal/store"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type Server struct {
@@ -35,13 +35,13 @@ func (s *Server) Start() {
 
 	// Create location indexes
 	if err := s.Store.CreateLocationIndexes(s.Ctx); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
 	// Start the server
 	serverAddr := ":" + s.Config.ServerPort
-	log.Printf("👂 Listening and serving HTTP on %s\n", serverAddr)
-	log.Fatal(s.App.Listen(serverAddr))
+	log.Info().Msgf("👂 Listening and serving HTTP on %s", serverAddr)
+	log.Fatal().Err(s.App.Listen(serverAddr))
 }
 
 func (s *Server) Routes() {
